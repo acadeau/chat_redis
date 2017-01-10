@@ -4,8 +4,9 @@ extern crate termion;
 
 use redis::RedisResult;
 use termion::raw::IntoRawMode;
-use std::sync::mpsc;
 use std::io;
+use std::sync::mpsc;
+use std::sync::mpsc::{Sender, Receiver};
 use std::time;
 use std::io::{Write, stdout};
 use std::thread;
@@ -32,7 +33,6 @@ fn ui(con: &redis::Connection) -> RedisResult<()> {
         let mut user_text = String::new();
         io::stdin().read_line(&mut user_text)
             .expect("failed to read line");
-        let _ : () = try!(redis::cmd("PUBLISH").arg("channel1").arg(user_text).query(con));
     }
 }
 
@@ -42,30 +42,36 @@ struct PubSubMessage{
 
 enum Event {
     Input(event::Key),
-    Message,
+    Message(String),
     Refresh,
 }
 
 impl PubSubMessage{
-    fn message_handler(&self) -> RedisResult<()> {
+    fn message_handler(&self, tx: &Sender<Event>) -> RedisResult<()> {
         loop {
             let msg = try!(self.pubsub.get_message());
             let payload : String = try!(msg.get_payload());
-            println!("{}", payload);
+            tx.send(Event::Message(payload)).unwrap();
         }
     }
 }
 
-fn chat_start() -> redis::RedisResult<()> {
+fn chat_start(tx: Sender<Event>, rx: Receiver<String>) -> redis::RedisResult<()> {
     let client = try!(redis::Client::open("redis://127.0.0.1:6379/"));
     let con = try!(client.get_connection());
     let pubsub = try!(subscribe("channel1", client));
     let message = PubSubMessage { pubsub : pubsub };
 
     thread::spawn(move || {
-        message.message_handler();
+        message.message_handler(&tx);
     });
-    ui(&con);
+
+    thread::spawn(move || {
+        loop {
+            let user_text = rx.recv().unwrap();
+            let _ : () = redis::cmd("PUBLISH").arg("channel1").arg(user_text).query(&con).unwrap();
+        }
+    });
     Ok(())
 }
 
@@ -75,16 +81,13 @@ fn main() {
   terminal.clear().unwrap();
   terminal.hide_cursor().unwrap();
   let (tx, rx) = mpsc::channel();
+  let (tx_send_message, rx_message) = mpsc::channel();
   let input_tx = tx.clone();
   let message_tx = tx.clone();
   let clock_tx = tx.clone();
-  let mut errors = vec![("Event1".to_string(), "INFO"),
-                         ("Event2".to_string(), "INFO"),
-                         ("Event3".to_string(), "CRITICAL"),
-                         ("Event4".to_string(), "ERROR"),
-                         ("Event5".to_string(), "INFO"),
-                         ("Event6".to_string(), "INFO"),
-                         ];
+  let mut errors = vec![];
+
+
   thread::spawn(move || {
       let stdin = io::stdin();
         for c in stdin.keys() {
@@ -109,6 +112,7 @@ fn main() {
           thread::sleep(time::Duration::from_millis(400));
       }
   });
+  chat_start(message_tx, rx_message);
   let mut isV = false;
   let mut buffer = String::new();
   loop {
@@ -128,7 +132,7 @@ fn main() {
                         let mut a = char::to_string(&c);
                         if c == '\n' {
                             let ph = String::from(buffer.as_str());
-                            errors.insert(0, (ph, "INFO"));
+                            tx_send_message.send(ph).unwrap();
                             buffer.clear();
                             a = "".to_string();
                         }
@@ -145,7 +149,9 @@ fn main() {
             Event::Refresh => {
                 isV = !isV;
             },
-            _ => {},
+            Event::Message(m) => {
+                errors.insert(0, (m, "INFO"));
+            }
         }
   }
   terminal.clear().unwrap();
