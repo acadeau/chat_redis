@@ -1,4 +1,4 @@
-mod event;
-mod ui;
-mod chat;
-mod cmd;
+pub mod event;
+pub mod ui;
+pub mod chat;
+pub mod cmd;

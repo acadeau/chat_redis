@@ -1,32 +1,32 @@
 extern crate redis;
 
 use event::Event;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::Sender;
 use std::thread;
 use self::redis::RedisResult;
 
-struct Chat<'a> {
-    con: &'a redis::Connection,
+pub struct Chat {
+    con: redis::Connection,
 }
 
-impl <'a> Chat<'a>{
-    fn start(&self, tx: &Sender<Event>) -> Chat  {
+
+pub fn start(tx: Sender<Event>) -> Chat {
         let client = redis::Client::open("redis://127.0.0.1:6379/").unwrap();
         let con = client.get_connection().unwrap();
 
         let pubsub = subscribe("channel1", client).unwrap();
 
         thread::spawn(move || {
-            message_handler(tx);
+            message_handler(pubsub, &tx);
         });
 
-        Chat { con: &con }
-    }
+        Chat { con: con }
+}
 
-    fn send_message(&self, user_text: String) {
-        let _ : () = redis::cmd("PUBLISH").arg("channel1").arg(user_text).query(self.con).unwrap();
+impl Chat{
+   pub fn send_message(&self, user_text: String) {
+        let _ : () = redis::cmd("PUBLISH").arg("channel1").arg(user_text).query(&self.con).unwrap();
     }
-    
 }
 
 
