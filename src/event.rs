@@ -8,5 +8,6 @@ pub enum Event {
     Message(String),
     Quit,
     Error(String),
+    Pseudo(String),
 }
 

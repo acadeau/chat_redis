@@ -14,16 +14,14 @@ use std::sync::mpsc::{Sender, Receiver};
 use event::Event;
 use std::sync::mpsc;
 
-
- 
-
 fn run(terminal: &mut Terminal<TermionBackend>, size: &Rect, chat: &Chat, rx: &Receiver<Event>, tx: Sender<Event>) {
     let tx_ui = tx.clone();
     let tx_command = tx.clone();
     let mut messages = Vec::new();
     let mut buffer = String::new();
-    
+    let mut pseudo = String::from("anonymous");
     loop {
+        let nb_elements = ui::get_nb_elements_per_list(size, &messages);
         ui::draw(terminal, size, &buffer, &messages);
         let evt = rx.recv().unwrap();
         match evt {
@@ -32,14 +30,24 @@ fn run(terminal: &mut Terminal<TermionBackend>, size: &Rect, chat: &Chat, rx: &R
             },
             Event::Enter(message) => match message.starts_with("/") {
                 true => cmd::check_command(message, &tx_command),
-                false => chat.send_message(message),
+                false => chat.send_message(format!("{} : {}", pseudo, message)),
             },
             Event::Message(message) => {
-                messages.insert(0,message);
+                if nb_elements == messages.len() && nb_elements != 0 {
+                    messages.remove(0);
+                }
+                messages.push(message);
             }
             Event::Quit => break,
             Event::Error(err) =>  {
-                messages.insert(0, err);
+                if nb_elements == messages.len() && nb_elements != 0 {
+                    messages.remove(0);
+                }
+                messages.push(err);
+            },
+            Event::Pseudo(new_pseudo) => {
+                chat.send_message(format!("Info : {} is now {}.", pseudo, new_pseudo));
+                pseudo = new_pseudo;
             }
         };
     }

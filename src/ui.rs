@@ -12,6 +12,8 @@ use event::Event;
 use std::io;
 use std::sync::mpsc::Sender;
 use std::thread;
+use std::cmp::min;
+
 
 
 pub fn new(tx: Sender<Event>) -> (Terminal<TermionBackend>, Rect) {
@@ -48,10 +50,11 @@ pub fn draw(terminal: &mut Terminal<TermionBackend>, size: &Rect, buffer: &Strin
             .render( terminal
                    , size
                    , |t, chunks| {
+                       
                         List::default()
                             .block(Block::default()
-                                    .borders(border::ALL)
-                                    .title("Messages"))
+                            .borders(border::ALL)
+                            .title("Messages"))
                             .items(& styled_messages)
                             .render(t, &chunks[0]);
 
@@ -66,12 +69,12 @@ pub fn draw(terminal: &mut Terminal<TermionBackend>, size: &Rect, buffer: &Strin
 
 pub fn input_handler(event_tx: &Sender<Event>, key: event::Key, buffer: String) -> String {
         match key {
-            event::Key::Char(c) =>  match c == '\n' {
+            event::Key::Char(c) =>  match c == '\n' && !buffer.is_empty()   {
                 true => {
                     event_tx.send(Event::Enter(String::from(buffer.as_str()))).unwrap();
                     String::new()
                 }
-                false => format!("{}{}", buffer, c)
+                false => String::from(format!("{}{}", buffer, c).replace("\n", ""))
             },
             event::Key::Backspace => {
                 let mut temp = String::from(buffer.as_str());
@@ -87,4 +90,7 @@ pub fn clear(terminal: &mut Terminal<TermionBackend>){
     terminal.show_cursor().unwrap();
 }
 
-  
+pub fn get_nb_elements_per_list(size: &Rect, messages: &Vec<String>) -> usize{
+    // Don't know why this is 73%, maybe the size of character
+    ((size.height * 73) / 100) as usize
+}
