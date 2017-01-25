@@ -1,6 +1,7 @@
 use event::Event;
 use std::sync::mpsc::Sender;
 
+// Check the command and if there is an action
 pub fn check_command (cmd: String, tx: &Sender<Event>) {
   let mut cmd_split = cmd.split_whitespace();
   

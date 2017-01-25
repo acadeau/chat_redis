@@ -14,6 +14,8 @@ use std::sync::mpsc::{Sender, Receiver};
 use event::Event;
 use std::sync::mpsc;
 
+
+// Run the main loop, It will handle all events.
 fn run(terminal: &mut Terminal<TermionBackend>, size: &Rect, chat: &Chat, rx: &Receiver<Event>, tx: Sender<Event>) {
     let tx_ui = tx.clone();
     let tx_command = tx.clone();
@@ -54,6 +56,7 @@ fn run(terminal: &mut Terminal<TermionBackend>, size: &Rect, chat: &Chat, rx: &R
 }
 
 fn main() {
+  // Creation of a channel to communicate with the main loop.
   let (tx, rx) = mpsc::channel();
   let (mut terminal, size) = ui::new(tx.clone());
   let chat = chat::start(tx.clone());

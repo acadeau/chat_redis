@@ -15,7 +15,9 @@ use std::thread;
 use std::cmp::min;
 
 
-
+// Create a terminal for ui use.
+// Launch a thread to handle user input
+// @param {Sender<Event>} : A sender to communicate to the channel of the event.
 pub fn new(tx: Sender<Event>) -> (Terminal<TermionBackend>, Rect) {
         let backend = TermionBackend::new().unwrap();
         let mut terminal = Terminal::new(backend).unwrap();
@@ -32,6 +34,8 @@ pub fn new(tx: Sender<Event>) -> (Terminal<TermionBackend>, Rect) {
         (terminal, size)
     }
 
+
+// Draw the ui
 pub fn draw(terminal: &mut Terminal<TermionBackend>, size: &Rect, buffer: &String, messages: &Vec<String>) {
         let white = Style::default().fg(Color::White);
         let text = format!("> {}{}", buffer, "▍");   
@@ -50,14 +54,15 @@ pub fn draw(terminal: &mut Terminal<TermionBackend>, size: &Rect, buffer: &Strin
             .render( terminal
                    , size
                    , |t, chunks| {
-                       
+                        // List widget to display messages
                         List::default()
                             .block(Block::default()
                             .borders(border::ALL)
                             .title("Messages"))
                             .items(& styled_messages)
                             .render(t, &chunks[0]);
-
+                        
+                        // Paragraph widget to show the user entry
                         Paragraph::default()
                                 .block(Block::default()
                                 .borders(border::ALL))
@@ -67,6 +72,7 @@ pub fn draw(terminal: &mut Terminal<TermionBackend>, size: &Rect, buffer: &Strin
         terminal.draw().unwrap();
     }
 
+// Manage the user input. Handle the enter key and the backspace key
 pub fn input_handler(event_tx: &Sender<Event>, key: event::Key, buffer: String) -> String {
         match key {
             event::Key::Char(c) =>  match c == '\n' && !buffer.is_empty()   {
@@ -85,11 +91,13 @@ pub fn input_handler(event_tx: &Sender<Event>, key: event::Key, buffer: String) 
         }
     }
 
+// Clear the ui
 pub fn clear(terminal: &mut Terminal<TermionBackend>){
     terminal.clear().unwrap();
     terminal.show_cursor().unwrap();
 }
 
+// Use to have the maximum of elements in the list widget
 pub fn get_nb_elements_per_list(size: &Rect, messages: &Vec<String>) -> usize{
     // Don't know why this is 73%, maybe the size of character
     ((size.height * 73) / 100) as usize
