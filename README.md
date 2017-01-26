@@ -1,8 +1,6 @@
 # chat_redis
 
-The purpose for this project use `SUBSCRIBE` and `PUBLISH` of redis command to have a chat.
-
-I used Rust to learn this language.
+A chat app in terminal using `PUBLISH`/`SUBSCRIBE` of redis and Rust for learning purpose.
 
 ## Dependencies :
 
