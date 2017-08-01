@@ -15,7 +15,7 @@ pub fn check_command (cmd: String, tx: &Sender<Event>) {
     "/name" => {
       match cmd_split.next() {
         Some(arg) => tx.send(Event::Pseudo(arg.to_string())).unwrap(),
-        None => tx.send(Event::Pseudo("Error : Missing arguments : /name arg1".to_string())).unwrap(),
+        None => tx.send(Event::Error("Error : Missing arguments : /name arg1".to_string())).unwrap(),
       }
     },
     _ => {
