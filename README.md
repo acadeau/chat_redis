@@ -10,7 +10,7 @@ A chat app in terminal using `PUBLISH`/`SUBSCRIBE` of redis and Rust for learnin
 ## Command :
 
 * `/q` or `/quit` : quit the application
-* `/name arg` : change name to "arg"
+* `/name arg` : change username to "arg"
 
 ## Known bugs :
 
